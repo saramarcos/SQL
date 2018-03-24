@@ -1,0 +1,37 @@
+SELECT date, video_id, action, COUNT(*) AS event_count FROM 
+(
+
+SELECT
+  fullvisitorid,
+  visitid,
+  hit.hitnumber,
+  date,
+  hit.eventinfo.eventAction AS action,
+  max(case when customdimension.index = 42 then customdimension.value end) video_id,
+  max(case when customdimension.index = 45 then customdimension.value end) video_title,
+  max(case when customdimension.index = 41 then customdimension.value end) video_type
+FROM
+`126975400.ga_sessions_*`,
+UNNEST(hits) as hit,
+UNNEST(hit.customdimensions) as customdimension
+WHERE _TABLE_SUFFIX BETWEEN '20180313' AND '20180321'
+AND hit.eventinfo.eventAction IN (
+  'video_25_percent',
+  'video_50_percent',
+  'video_75_percent'
+)
+AND
+ NOT LOWER(trafficSource.source) IN (
+   'rrdiscover', 'rewardrack', 'rrdiscovery'
+ )  
+AND
+ NOT LOWER(trafficSource.campaign) IN (
+   'kw','jungroup'
+ )
+GROUP BY date, action, fullVisitorId, visitId, hit.hitNumber
+)
+
+WHERE video_type = 'clip'
+GROUP BY date, video_id, action
+ORDER BY event_count DESC
+LIMIT 10;
